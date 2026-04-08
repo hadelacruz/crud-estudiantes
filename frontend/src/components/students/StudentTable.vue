@@ -1,37 +1,61 @@
 <template>
-  <section class="table-wrap">
-    <h2>Listado de estudiantes</h2>
+  <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <h2 class="mb-4 text-lg font-semibold text-slate-800">
+      Listado de estudiantes
+    </h2>
 
-    <table>
-      <thead>
-        <tr>
-          <th>Nombre</th>
-          <th>Apellido</th>
-          <th>Email</th>
-          <th>Fecha Nacimiento</th>
-          <th>Carrera</th>
-          <th>Acciones</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-if="students.length === 0">
-          <td colspan="6" class="empty">No hay estudiantes registrados.</td>
-        </tr>
-        <tr v-for="student in students" :key="student.id">
-          <td>{{ student.nombre }}</td>
-          <td>{{ student.apellido }}</td>
-          <td>{{ student.email }}</td>
-          <td>{{ student.fecha_nacimiento || "-" }}</td>
-          <td>{{ student.carrera ? student.carrera.nombre : "-" }}</td>
-          <td class="actions">
-            <button class="edit" @click="$emit('edit', student)">Editar</button>
-            <button class="delete" @click="$emit('delete', student)">
-              Eliminar
-            </button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-slate-200 text-sm">
+        <thead
+          class="bg-slate-100 text-left text-xs uppercase tracking-wide text-slate-600"
+        >
+          <tr>
+            <th class="px-3 py-2">Nombre</th>
+            <th class="px-3 py-2">Apellido</th>
+            <th class="px-3 py-2">Email</th>
+            <th class="px-3 py-2">Fecha Nacimiento</th>
+            <th class="px-3 py-2">Carrera</th>
+            <th class="px-3 py-2">Acciones</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          <tr v-if="students.length === 0">
+            <td colspan="6" class="px-3 py-5 text-center text-slate-500">
+              No hay estudiantes registrados.
+            </td>
+          </tr>
+          <tr
+            v-for="student in students"
+            :key="student.id"
+            class="hover:bg-slate-50"
+          >
+            <td class="px-3 py-2">{{ student.nombre }}</td>
+            <td class="px-3 py-2">{{ student.apellido }}</td>
+            <td class="px-3 py-2">{{ student.email }}</td>
+            <td class="px-3 py-2">{{ student.fecha_nacimiento || "-" }}</td>
+            <td class="px-3 py-2">
+              {{ student.carrera ? student.carrera.nombre : "-" }}
+            </td>
+            <td class="px-3 py-2">
+              <div class="flex gap-2">
+                <button
+                  class="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-blue-700"
+                  @click="$emit('edit', student)"
+                >
+                  Editar
+                </button>
+                <button
+                  class="rounded-md bg-rose-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-rose-700"
+                  @click="$emit('delete', student)"
+                >
+                  Eliminar
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </section>
 </template>
 
@@ -46,54 +70,3 @@ export default {
   },
 };
 </script>
-
-<style scoped>
-.table-wrap {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 16px;
-}
-
-h2 {
-  margin: 0 0 12px;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-th,
-td {
-  border-bottom: 1px solid #e2e8f0;
-  padding: 10px;
-  text-align: left;
-}
-
-.actions {
-  display: flex;
-  gap: 8px;
-}
-
-button {
-  border: 0;
-  border-radius: 6px;
-  padding: 8px 10px;
-  cursor: pointer;
-  color: #fff;
-}
-
-.edit {
-  background: #2563eb;
-}
-
-.delete {
-  background: #dc2626;
-}
-
-.empty {
-  text-align: center;
-  color: #64748b;
-}
-</style>

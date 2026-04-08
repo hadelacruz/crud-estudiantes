@@ -1,9 +1,12 @@
 <template>
-  <div class="field">
-    <label for="carrera_id">Carrera</label>
+  <div class="grid gap-1.5">
+    <label for="carrera_id" class="text-sm font-medium text-slate-700"
+      >Carrera</label
+    >
     <select
       id="carrera_id"
       :value="value"
+      class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100"
       @change="$emit('input', Number($event.target.value))"
     >
       <option disabled :value="0">Seleccione una carrera</option>
@@ -29,21 +32,3 @@ export default {
   },
 };
 </script>
-
-<style scoped>
-.field {
-  display: grid;
-  gap: 6px;
-}
-
-label {
-  font-size: 0.9rem;
-  font-weight: 600;
-}
-
-select {
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
-  padding: 10px;
-}
-</style>

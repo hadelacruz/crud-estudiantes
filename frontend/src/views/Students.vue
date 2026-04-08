@@ -1,24 +1,70 @@
 <template>
-  <main class="students-page">
-    <header>
-      <h1>Gestion de Estudiantes</h1>
+  <main class="mx-auto grid w-full max-w-6xl gap-4 px-4 py-6">
+    <header class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <h1 class="text-2xl font-semibold text-slate-900">
+        Gestion de Estudiantes
+      </h1>
     </header>
 
-    <p v-if="feedback" class="feedback">{{ feedback }}</p>
-    <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
+    <p
+      v-if="errorMessage"
+      class="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700"
+    >
+      {{ errorMessage }}
+    </p>
 
     <StudentForm
       :student="editingStudent"
       :majors="majors"
+      :reset-token="resetFormToken"
       @submit="handleSubmit"
       @cancel="cancelEdit"
     />
 
-    <StudentTable
-      :students="students"
-      @edit="startEdit"
-      @delete="handleDelete"
-    />
+    <StudentTable :students="students" @edit="startEdit" @delete="askDelete" />
+
+    <div
+      v-if="deleteModal.open"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-4"
+    >
+      <div class="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl">
+        <h3 class="text-lg font-semibold text-slate-900">
+          Confirmar eliminacion
+        </h3>
+        <p class="mt-2 text-sm text-slate-600">
+          Deseas eliminar a
+          <span class="font-semibold text-slate-900">
+            {{ deleteModal.student?.nombre }}
+            {{ deleteModal.student?.apellido }}
+          </span>
+          ?
+        </p>
+        <div class="mt-4 flex justify-end gap-2">
+          <button
+            class="rounded-lg bg-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-300"
+            @click="closeDeleteModal"
+          >
+            Cancelar
+          </button>
+          <button
+            class="rounded-lg bg-rose-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-rose-700"
+            @click="confirmDelete"
+          >
+            Si, eliminar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div
+      v-if="successModal.open"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-4"
+    >
+      <div class="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl">
+        <h3 class="text-lg font-semibold text-slate-900">Operacion exitosa</h3>
+        <p class="mt-2 text-sm text-slate-600">{{ successModal.message }}</p>
+      </div>
+    </div>
   </main>
 </template>
 
@@ -44,12 +90,27 @@ export default {
       majors: [],
       students: [],
       editingStudent: null,
-      feedback: "",
       errorMessage: "",
+      resetFormToken: 0,
+      successModalTimer: null,
+      deleteModal: {
+        open: false,
+        student: null,
+      },
+      successModal: {
+        open: false,
+        message: "",
+      },
     };
   },
   async created() {
     await this.loadInitialData();
+  },
+  beforeDestroy() {
+    if (this.successModalTimer) {
+      clearTimeout(this.successModalTimer);
+      this.successModalTimer = null;
+    }
   },
   methods: {
     async loadInitialData() {
@@ -70,7 +131,6 @@ export default {
       this.students = response.data;
     },
     startEdit(student) {
-      this.feedback = "";
       this.errorMessage = "";
       this.editingStudent = {
         id: student.id,
@@ -83,22 +143,45 @@ export default {
     },
     cancelEdit() {
       this.editingStudent = null;
-      this.feedback = "Edicion cancelada.";
+    },
+    openSuccessModal(message) {
+      if (this.successModalTimer) {
+        clearTimeout(this.successModalTimer);
+      }
+
+      this.successModal = {
+        open: true,
+        message,
+      };
+
+      this.successModalTimer = setTimeout(() => {
+        this.closeSuccessModal();
+      }, 2000);
+    },
+    closeSuccessModal() {
+      this.successModal = {
+        open: false,
+        message: "",
+      };
+
+      if (this.successModalTimer) {
+        clearTimeout(this.successModalTimer);
+        this.successModalTimer = null;
+      }
     },
     async handleSubmit(payload) {
-      this.feedback = "";
       this.errorMessage = "";
 
       try {
         if (this.editingStudent) {
           await updateEstudiante(this.editingStudent.id, payload);
-          this.feedback = "Estudiante actualizado correctamente.";
+          this.openSuccessModal("Estudiante actualizado correctamente.");
         } else {
           await createEstudiante(payload);
-          this.feedback = "Estudiante creado correctamente.";
         }
 
         this.editingStudent = null;
+        this.resetFormToken += 1;
         await this.refreshStudents();
       } catch (error) {
         this.errorMessage =
@@ -106,23 +189,34 @@ export default {
           "Ocurrio un error al guardar el estudiante.";
       }
     },
-    async handleDelete(student) {
-      this.feedback = "";
+    askDelete(student) {
       this.errorMessage = "";
+      this.deleteModal = {
+        open: true,
+        student,
+      };
+    },
+    closeDeleteModal() {
+      this.deleteModal = {
+        open: false,
+        student: null,
+      };
+    },
+    async confirmDelete() {
+      const student = this.deleteModal.student;
+      if (!student) return;
 
-      const confirmed = window.confirm(
-        `Deseas eliminar a ${student.nombre} ${student.apellido}?`
-      );
-
-      if (!confirmed) return;
+      this.errorMessage = "";
 
       try {
         await deleteEstudiante(student.id);
-        this.feedback = "Estudiante eliminado correctamente.";
+        this.openSuccessModal("Estudiante eliminado correctamente.");
         if (this.editingStudent && this.editingStudent.id === student.id) {
           this.editingStudent = null;
+          this.resetFormToken += 1;
         }
         await this.refreshStudents();
+        this.closeDeleteModal();
       } catch (error) {
         this.errorMessage =
           error.response?.data?.message ||
@@ -132,38 +226,3 @@ export default {
   },
 };
 </script>
-
-<style scoped>
-.students-page {
-  max-width: 1080px;
-  margin: 0 auto;
-  padding: 24px 16px;
-  display: grid;
-  gap: 16px;
-}
-
-header h1 {
-  margin: 0;
-}
-
-header p {
-  margin: 6px 0 0;
-  color: #64748b;
-}
-
-.feedback {
-  margin: 0;
-  padding: 10px 12px;
-  border-radius: 8px;
-  background: #ecfeff;
-  color: #155e75;
-}
-
-.error {
-  margin: 0;
-  padding: 10px 12px;
-  border-radius: 8px;
-  background: #fee2e2;
-  color: #991b1b;
-}
-</style>
