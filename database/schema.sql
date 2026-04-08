@@ -1,0 +1,20 @@
+CREATE DATABASE IF NOT EXISTS crud_estudiantes;
+USE crud_estudiantes;
+
+CREATE TABLE IF NOT EXISTS carreras (
+	id INT AUTO_INCREMENT PRIMARY KEY,
+	nombre VARCHAR(100) NOT NULL UNIQUE
+);
+
+CREATE TABLE IF NOT EXISTS estudiantes (
+	id INT AUTO_INCREMENT PRIMARY KEY,
+	nombre VARCHAR(100) NOT NULL,
+	apellido VARCHAR(100) NOT NULL,
+	email VARCHAR(120) NOT NULL,
+	fecha_nacimiento DATE,
+	carrera_id INT NOT NULL,
+	CONSTRAINT fk_estudiante_carrera
+		FOREIGN KEY (carrera_id) REFERENCES carreras(id)
+		ON UPDATE CASCADE
+		ON DELETE RESTRICT
+);
