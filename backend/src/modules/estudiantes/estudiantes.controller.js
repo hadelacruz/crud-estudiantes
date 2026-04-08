@@ -1,5 +1,9 @@
 const Estudiante = require("./estudiantes.model");
 const Carrera = require("../carreras/carrera.model");
+const {
+	validateEstudianteInput,
+	normalizeEstudiantePayload,
+} = require("./estudiante.validator");
 
 const includeCarrera = {
 	model: Carrera,
@@ -40,44 +44,28 @@ const getEstudianteById = async (req, res, next) => {
 
 const createEstudiante = async (req, res, next) => {
 	try {
-		const { nombre, apellido, email, fecha_nacimiento, carrera_id } = req.body;
-
-		const errores = {};
-
-		if (!nombre || !String(nombre).trim()) {
-			errores.nombre = "El campo nombre es requerido.";
-		}
-
-		if (!apellido || !String(apellido).trim()) {
-			errores.apellido = "El campo apellido es requerido.";
-		}
-
-		if (!email || !String(email).trim()) {
-			errores.email = "El campo email es requerido.";
-		}
-
-		if (carrera_id === undefined || carrera_id === null || carrera_id === "") {
-			errores.carrera_id = "El campo carrera_id es requerido.";
-		}
+		const errores = validateEstudianteInput(req.body, { isPartial: false });
 
 		if (Object.keys(errores).length > 0) {
 			return res.status(400).json({
-				message: "Hay campos requeridos faltantes.",
+				message: "Hay errores de validación.",
 				errores,
 			});
 		}
 
-		const carrera = await Carrera.findByPk(carrera_id);
+		const payload = normalizeEstudiantePayload(req.body);
+
+		const carrera = await Carrera.findByPk(payload.carrera_id);
 		if (!carrera) {
 			return res.status(400).json({ message: "La carrera indicada no existe." });
 		}
 
 		const nuevo = await Estudiante.create({
-			nombre: String(nombre).trim(),
-			apellido: String(apellido).trim(),
-			email: String(email).trim().toLowerCase(),
-			fecha_nacimiento: fecha_nacimiento ?? null,
-			carrera_id,
+			nombre: payload.nombre,
+			apellido: payload.apellido,
+			email: payload.email,
+			fecha_nacimiento: payload.fecha_nacimiento,
+			carrera_id: payload.carrera_id,
 		});
 
 		const estudiante = await Estudiante.findByPk(nuevo.id, {
@@ -89,6 +77,17 @@ const createEstudiante = async (req, res, next) => {
 		if (error.name === "SequelizeUniqueConstraintError") {
 			return res.status(409).json({ message: "El email ya está registrado." });
 		}
+
+		if (error.name === "SequelizeValidationError") {
+			return res.status(400).json({
+				message: "Hay errores de validación.",
+				errores: error.errors.reduce((acc, item) => {
+					acc[item.path] = item.message;
+					return acc;
+				}, {}),
+			});
+		}
+
 		return next(error);
 	}
 };
@@ -96,27 +95,40 @@ const createEstudiante = async (req, res, next) => {
 const updateEstudiante = async (req, res, next) => {
 	try {
 		const { id } = req.params;
-		const { nombre, apellido, email, fecha_nacimiento, carrera_id } = req.body;
+		const errores = validateEstudianteInput(req.body, { isPartial: true });
+		if (Object.keys(errores).length > 0) {
+			return res.status(400).json({
+				message: "Hay errores de validación.",
+				errores,
+			});
+		}
+
+		const payload = normalizeEstudiantePayload(req.body);
 
 		const estudiante = await Estudiante.findByPk(id);
 		if (!estudiante) {
 			return res.status(404).json({ message: "Estudiante no encontrado." });
 		}
 
-		if (carrera_id !== undefined) {
-			const carrera = await Carrera.findByPk(carrera_id);
+		if (payload.carrera_id !== undefined) {
+			const carrera = await Carrera.findByPk(payload.carrera_id);
 			if (!carrera) {
 				return res.status(400).json({ message: "La carrera indicada no existe." });
 			}
 		}
 
 		await estudiante.update({
-			nombre: nombre !== undefined ? String(nombre).trim() : estudiante.nombre,
-			apellido: apellido !== undefined ? String(apellido).trim() : estudiante.apellido,
-			email: email !== undefined ? String(email).trim().toLowerCase() : estudiante.email,
+			nombre: payload.nombre !== undefined ? payload.nombre : estudiante.nombre,
+			apellido: payload.apellido !== undefined ? payload.apellido : estudiante.apellido,
+			email: payload.email !== undefined ? payload.email : estudiante.email,
 			fecha_nacimiento:
-				fecha_nacimiento !== undefined ? fecha_nacimiento : estudiante.fecha_nacimiento,
-			carrera_id: carrera_id !== undefined ? carrera_id : estudiante.carrera_id,
+				payload.fecha_nacimiento !== undefined
+					? payload.fecha_nacimiento
+					: estudiante.fecha_nacimiento,
+			carrera_id:
+				payload.carrera_id !== undefined
+					? payload.carrera_id
+					: estudiante.carrera_id,
 		});
 
 		const actualizado = await Estudiante.findByPk(id, {
@@ -128,6 +140,17 @@ const updateEstudiante = async (req, res, next) => {
 		if (error.name === "SequelizeUniqueConstraintError") {
 			return res.status(409).json({ message: "El email ya está registrado." });
 		}
+
+		if (error.name === "SequelizeValidationError") {
+			return res.status(400).json({
+				message: "Hay errores de validación.",
+				errores: error.errors.reduce((acc, item) => {
+					acc[item.path] = item.message;
+					return acc;
+				}, {}),
+			});
+		}
+
 		return next(error);
 	}
 };

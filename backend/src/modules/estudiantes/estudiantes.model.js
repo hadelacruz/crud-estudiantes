@@ -22,12 +22,31 @@ const Estudiante = sequelize.define(
 			type: DataTypes.STRING(120),
 			allowNull: false,
 			validate: {
-				isEmail: true,
+				isEmail: {
+					msg: "El email no tiene un formato válido.",
+				},
 			},
 		},
 		fecha_nacimiento: {
 			type: DataTypes.DATEONLY,
 			allowNull: true,
+			validate: {
+				isNotFutureDate(value) {
+					if (!value) return;
+
+					const birthDate = new Date(value);
+					const today = new Date();
+
+					birthDate.setHours(0, 0, 0, 0);
+					today.setHours(0, 0, 0, 0);
+
+					if (birthDate > today) {
+						throw new Error(
+							"La fecha de nacimiento no puede ser mayor a la fecha actual.",
+						);
+					}
+				},
+			},
 		},
 		carrera_id: {
 			type: DataTypes.INTEGER,

@@ -65,8 +65,12 @@
             id="fecha_nacimiento"
             v-model="form.fecha_nacimiento"
             type="date"
+            :max="todayDate"
             class="rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100"
           />
+          <small v-if="errors.fecha_nacimiento" class="text-xs text-rose-600">
+            {{ errors.fecha_nacimiento }}
+          </small>
         </div>
 
         <div class="grid gap-1.5">
@@ -137,6 +141,12 @@ export default {
     isEditing() {
       return Boolean(this.student && this.student.id);
     },
+    todayDate() {
+      const today = new Date();
+      const month = String(today.getMonth() + 1).padStart(2, "0");
+      const day = String(today.getDate()).padStart(2, "0");
+      return `${today.getFullYear()}-${month}-${day}`;
+    },
   },
   watch: {
     student: {
@@ -165,12 +175,27 @@ export default {
     },
   },
   methods: {
+    isValidEmail(value) {
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value).trim());
+    },
     validate() {
       const errors = {};
 
       if (!this.form.nombre) errors.nombre = "Nombre requerido.";
       if (!this.form.apellido) errors.apellido = "Apellido requerido.";
       if (!this.form.email) errors.email = "Email requerido.";
+      else if (!this.isValidEmail(this.form.email)) {
+        errors.email = "El email no tiene un formato válido.";
+      }
+
+      if (
+        this.form.fecha_nacimiento &&
+        this.form.fecha_nacimiento > this.todayDate
+      ) {
+        errors.fecha_nacimiento =
+          "La fecha de nacimiento no puede ser mayor a la fecha actual.";
+      }
+
       if (!this.form.carrera_id) errors.carrera_id = "Carrera requerida.";
 
       this.errors = errors;
